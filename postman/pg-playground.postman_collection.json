@@ -1,0 +1,402 @@
+{
+  "info": {
+    "name": "PostgreSQL Playground API",
+    "_postman_id": "pg-playground-collection-v2",
+    "description": "Complete API collection for testing all PostgreSQL features via Spring Boot. Import and set baseUrl = http://localhost:8080",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "http://localhost:8080", "type": "string" },
+    { "key": "userId",     "value": "1",  "type": "string" },
+    { "key": "productId",  "value": "1",  "type": "string" },
+    { "key": "orderId",    "value": "1",  "type": "string" },
+    { "key": "blogPostId", "value": "1",  "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 — Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users",
+            "description": "SELECT all users. Tests: JPA findAll, basic SELECT" }
+        },
+        {
+          "name": "Get User By ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": "SELECT by PK. Tests: 404 when not found" }
+        },
+        {
+          "name": "Get Users With No Orders (Anti-Join)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users/no-orders",
+            "description": "NOT EXISTS anti-join via native query" }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/users",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"charlie@example.com\",\n  \"username\": \"charlie\",\n  \"displayName\": \"Charlie Brown\",\n  \"phone\": \"+1-555-0100\",\n  \"role\": \"customer\"\n}" },
+            "description": "INSERT with UNIQUE constraint + Bean Validation"
+          }
+        },
+        {
+          "name": "Create User — Duplicate Email (409)",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/users",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@example.com\",\n  \"username\": \"alice2\",\n  \"role\": \"customer\"\n}" },
+            "description": "UNIQUE constraint violation → 409 Conflict"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT", "url": "{{baseUrl}}/api/users/{{userId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@example.com\",\n  \"username\": \"alice\",\n  \"displayName\": \"Alice Updated\",\n  \"phone\": \"+1-555-9999\"\n}" },
+            "description": "UPDATE + @PreUpdate updated_at"
+          }
+        },
+        {
+          "name": "Deactivate User (Soft Delete)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": "Soft delete: sets is_active = false" }
+        },
+        {
+          "name": "Add Loyalty Points (Bulk UPDATE)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/users/{{userId}}/loyalty-points?points=100",
+            "description": "@Modifying JPQL UPDATE — bulk update pattern" }
+        }
+      ]
+    },
+    {
+      "name": "02 — Products",
+      "item": [
+        {
+          "name": "Get All Products (Paginated)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/products?page=0&size=10&sort=price,desc",
+              "host": ["{{baseUrl}}"], "path": ["api","products"],
+              "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"sort","value":"price,desc"}] },
+            "description": "Pageable SELECT with ORDER BY and LIMIT/OFFSET"
+          }
+        },
+        {
+          "name": "Get Product By ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/products/{{productId}}" }
+        },
+        {
+          "name": "Full-Text Search (tsvector)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/products/search?q=laptop",
+            "description": "PostgreSQL tsvector + plainto_tsquery + ts_rank, GIN index" }
+        },
+        {
+          "name": "Products By Price Range (BETWEEN)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/products/price-range?min=10&max=500",
+            "description": "BETWEEN range query, B-Tree index range scan" }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/products",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"sku\": \"SKU-TEST-001\",\n  \"name\": \"Test Laptop\",\n  \"description\": \"A powerful laptop for testing PostgreSQL features\",\n  \"price\": 1299.99,\n  \"stock\": 25,\n  \"categoryId\": 1\n}" },
+            "description": "INSERT with FK, CHECK constraint on price"
+          }
+        },
+        {
+          "name": "Create Product — Duplicate SKU (409)",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/products",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"sku\": \"SKU-001\",\n  \"name\": \"Duplicate\",\n  \"price\": 9.99,\n  \"stock\": 1\n}" },
+            "description": "UNIQUE constraint on SKU → 409"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT", "url": "{{baseUrl}}/api/products/{{productId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"sku\": \"SKU-001\",\n  \"name\": \"iPhone 15 Pro\",\n  \"description\": \"Updated description\",\n  \"price\": 1099.99,\n  \"stock\": 45\n}" }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/products/{{productId}}",
+            "description": "DELETE — FK RESTRICT prevents if in order_items" }
+        },
+        {
+          "name": "Decrement Stock (Atomic UPDATE)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/products/{{productId}}/decrement-stock?qty=5",
+            "description": "Atomic UPDATE WHERE stock >= qty — prevents overselling" }
+        },
+        {
+          "name": "Decrement Stock — Insufficient (409)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/products/{{productId}}/decrement-stock?qty=99999",
+            "description": "Stock check failure → 409 Conflict" }
+        }
+      ]
+    },
+    {
+      "name": "03 — Orders",
+      "item": [
+        {
+          "name": "Get All Order Summaries (JOIN + GROUP BY)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/orders",
+            "description": "Multi-table JOIN, GROUP BY, JPQL DTO projection (OrderSummary)" }
+        },
+        {
+          "name": "Get Order By ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/orders/{{orderId}}" }
+        },
+        {
+          "name": "Get Orders By User (JOIN FETCH)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/orders/user/{{userId}}",
+            "description": "JOIN FETCH to avoid N+1 problem" }
+        },
+        {
+          "name": "Create Order (Atomic Transaction)",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": 1,\n  \"notes\": \"Please gift wrap\",\n  \"items\": [\n    { \"productId\": 1, \"quantity\": 1 },\n    { \"productId\": 2, \"quantity\": 2 }\n  ]\n}" },
+            "description": "Atomic transaction: order creation + stock decrement in one TX"
+          }
+        },
+        {
+          "name": "Update Order Status — Confirm",
+          "request": { "method": "PATCH", "url": "{{baseUrl}}/api/orders/{{orderId}}/status?status=confirmed",
+            "description": "Status transition validation" }
+        },
+        {
+          "name": "Update Order Status — Cancel Delivered (422)",
+          "request": { "method": "PATCH", "url": "{{baseUrl}}/api/orders/{{orderId}}/status?status=cancelled",
+            "description": "Business rule: cannot cancel delivered order → 422" }
+        },
+        {
+          "name": "Revenue By Status (GROUP BY + SUM)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/orders/revenue-by-status",
+            "description": "GROUP BY aggregation with SUM" }
+        }
+      ]
+    },
+    {
+      "name": "04 — Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/categories" }
+        },
+        {
+          "name": "Get Category Tree (Recursive CTE)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/categories/tree",
+            "description": "WITH RECURSIVE CTE — self-referencing FK hierarchy traversal" }
+        },
+        {
+          "name": "Get Top-Level Categories",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/categories/top-level",
+            "description": "WHERE parent_id IS NULL" }
+        }
+      ]
+    },
+    {
+      "name": "05 — Blog / Full-Text Search",
+      "item": [
+        {
+          "name": "Get All Published Posts",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/blog",
+            "description": "SELECT WHERE published = true" }
+        },
+        {
+          "name": "Get Blog Post By ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/blog/{{blogPostId}}" }
+        },
+        {
+          "name": "Full-Text Search with Ranking (tsvector + TS_RANK)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/blog/search?q=postgresql+performance",
+            "description": "WEBSEARCH_TO_TSQUERY, stored tsvector GENERATED column, GIN index, TS_RANK" }
+        },
+        {
+          "name": "Full-Text Search with Highlighted Snippets (TS_HEADLINE)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/blog/search/highlight?q=postgresql",
+            "description": "TS_HEADLINE with custom StartSel/StopSel for HTML highlighting" }
+        },
+        {
+          "name": "Create Blog Post",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/blog",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Understanding PostgreSQL Indexes\",\n  \"body\": \"B-Tree indexes are the default in PostgreSQL and work well for equality and range queries. GIN indexes are best for full-text search and JSONB.\",\n  \"author\": \"Dave\",\n  \"published\": true\n}" },
+            "description": "INSERT — tsvector GENERATED column auto-populated"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — PostgreSQL Core Features",
+      "item": [
+        {
+          "name": "User Rankings (RANK() Window Function)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/user-rankings",
+            "description": "RANK() OVER, window functions, LEFT JOIN aggregation" }
+        },
+        {
+          "name": "Top Products (CTE)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/top-products?limit=5",
+            "description": "WITH CTE, multi-table JOIN, ORDER BY aggregation" }
+        },
+        {
+          "name": "Running Revenue (Cumulative SUM OVER)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/running-revenue",
+            "description": "SUM() OVER ROWS BETWEEN UNBOUNDED PRECEDING, DATE_TRUNC" }
+        },
+        {
+          "name": "EXPLAIN ANALYZE",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/explain?sql=SELECT * FROM products WHERE is_active = true",
+            "description": "EXPLAIN ANALYZE — query plan inspection" }
+        },
+        {
+          "name": "Table Sizes (pg_class)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/table-sizes",
+            "description": "pg_class, pg_size_pretty, monitoring" }
+        },
+        {
+          "name": "Active Connections (pg_stat_activity)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/active-connections" }
+        },
+        {
+          "name": "Index Usage Stats (pg_stat_user_indexes)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/index-stats" }
+        },
+        {
+          "name": "Cache Hit Ratio (pg_statio_user_tables)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/cache-hit-ratio",
+            "description": "Buffer cache hit ratio — should be >99% for OLTP" }
+        },
+        {
+          "name": "Advisory Lock (pg_try_advisory_xact_lock)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/pg-features/advisory-lock/42",
+            "description": "Application-level distributed locking without table locks" }
+        },
+        {
+          "name": "SELECT FOR UPDATE (Row-Level Lock)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/locked-product/{{productId}}",
+            "description": "SELECT FOR UPDATE NOWAIT — pessimistic row locking" }
+        },
+        {
+          "name": "Vacuum Stats (pg_stat_user_tables)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pg-features/vacuum-stats",
+            "description": "Dead tuple monitoring, VACUUM health check" }
+        }
+      ]
+    },
+    {
+      "name": "07 — Advanced Features",
+      "item": [
+        {
+          "name": "UPSERT — Page View Counter (ON CONFLICT DO UPDATE)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/advanced/upsert/page-view?page=/home",
+            "description": "Atomic counter increment with ON CONFLICT DO UPDATE — safe under concurrency" }
+        },
+        {
+          "name": "UPSERT — Category (ON CONFLICT DO NOTHING)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/advanced/upsert/category?name=Electronics",
+            "description": "Idempotent insert — silently skips duplicates" }
+        },
+        {
+          "name": "UPSERT — Product Sync (xmax INSERT vs UPDATE detection)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/advanced/upsert/product-sync?sku=SKU-001&name=iPhone+15+Pro&price=1099.99",
+            "description": "UPSERT with RETURNING + xmax trick to detect INSERT vs UPDATE" }
+        },
+        {
+          "name": "Sequence — Next Invoice Number",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/sequence/next-invoice",
+            "description": "NEXTVAL('invoice_seq') — custom sequence usage" }
+        },
+        {
+          "name": "Sequence — Current Invoice Number",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/sequence/current-invoice",
+            "description": "Read last_value from sequence" }
+        },
+        {
+          "name": "Enum — Priority Values",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/enums/priority-values",
+            "description": "List all values of a custom ENUM type from pg_enum" }
+        },
+        {
+          "name": "Enum — Tickets By Priority",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/enums/tickets-by-priority",
+            "description": "GROUP BY on ENUM column — natural ordering" }
+        },
+        {
+          "name": "Range Types — Available Rooms",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/ranges/available-rooms?checkIn=2025-01-11&checkOut=2025-01-14",
+            "description": "daterange overlap check with && operator, EXCLUDE constraint" }
+        },
+        {
+          "name": "Range Types — Price Tier Lookup",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/ranges/price-tier?price=750",
+            "description": "numrange @> containment operator for tier lookup" }
+        },
+        {
+          "name": "GROUPING SETS — Revenue by Category & Status",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/grouping-sets/revenue",
+            "description": "GROUPING SETS — multiple GROUP BY dimensions in one query" }
+        },
+        {
+          "name": "ROLLUP — Monthly Revenue Subtotals",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/rollup/monthly-revenue",
+            "description": "ROLLUP — hierarchical subtotals (year → month → grand total)" }
+        },
+        {
+          "name": "TABLESAMPLE — Random Order Sample",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/tablesample/orders?pct=10",
+            "description": "TABLESAMPLE BERNOULLI — random row sampling for statistics" }
+        },
+        {
+          "name": "LISTEN/NOTIFY — Send Notification",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/advanced/notify?channel=order_updates&payload={\"orderId\":42,\"status\":\"shipped\"}",
+            "description": "pg_notify() — async pub/sub messaging, cache invalidation pattern" }
+        },
+        {
+          "name": "Error Handling — Safe Transfer (PL/pgSQL EXCEPTION)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/advanced/safe-transfer?fromId=1&toId=2&amount=50",
+            "description": "PL/pgSQL EXCEPTION block — structured error handling in stored function" }
+        },
+        {
+          "name": "Error Handling — Safe Transfer Insufficient Funds",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/advanced/safe-transfer?fromId=1&toId=2&amount=999999",
+            "description": "Custom SQLSTATE P0001 caught and returned as JSON" }
+        },
+        {
+          "name": "Domain Validation — Valid Contact",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/advanced/domain/validate-contact?email=user@example.com&zip=10001",
+            "description": "PostgreSQL DOMAIN type with CHECK constraint validation" }
+        },
+        {
+          "name": "Domain Validation — Invalid Email",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/advanced/domain/validate-contact?email=not-an-email&zip=10001",
+            "description": "Domain CHECK constraint violation caught and returned" }
+        },
+        {
+          "name": "Window — LAG/LEAD Day-over-Day Revenue",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/window/lag-lead",
+            "description": "LAG() and LEAD() window functions for day-over-day comparison" }
+        },
+        {
+          "name": "Window — Customer Quartiles (NTILE + PERCENT_RANK)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/window/customer-quartiles",
+            "description": "NTILE(4) for quartile bucketing, PERCENT_RANK() for percentile" }
+        },
+        {
+          "name": "Window — 7-Day Moving Average",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/advanced/window/moving-average?days=7",
+            "description": "AVG() OVER ROWS BETWEEN N PRECEDING AND CURRENT ROW" }
+        }
+      ]
+    }
+  ]
+}

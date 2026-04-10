@@ -1,0 +1,3 @@
+-- PostgreSQL schema — run 01_basics/01_create_tables.sql first
+-- This file is a no-op since DDL is managed by SQL scripts
+-- spring.jpa.hibernate.ddl-auto=validate expects tables to already exist

@@ -1,0 +1,66 @@
+# ─── Gradle ───────────────────────────────────────────────────
+.gradle/
+build/
+springboot-app/.gradle/
+springboot-app/build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ─── IntelliJ IDEA ────────────────────────────────────────────
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# ─── VS Code ──────────────────────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ─── Eclipse ──────────────────────────────────────────────────
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# ─── Spring Boot ──────────────────────────────────────────────
+springboot-app/src/main/resources/application-local.properties
+springboot-app/src/main/resources/application-prod.properties
+
+# ─── Java ─────────────────────────────────────────────────────
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# ─── OS ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs ─────────────────────────────────────────────────────
+*.log
+logs/
+springboot-app/logs/
+
+# ─── PostgreSQL ───────────────────────────────────────────────
+*.dump
+*.sql.bak
+/tmp/
+
+# ─── Secrets (never commit these) ────────────────────────────
+*.env
+.env
+secrets/
