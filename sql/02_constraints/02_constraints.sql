@@ -28,10 +28,10 @@ CREATE TABLE patients (
     full_name   VARCHAR(255) NOT NULL,
     dob         DATE NOT NULL,
     blood_type  CHAR(3) CHECK (blood_type IN ('A+','A-','B+','B-','AB+','AB-','O+','O-')),
-    -- GENERATED column: age computed from dob
-    age         INT GENERATED ALWAYS AS (
-                    DATE_PART('year', AGE(dob))::INT
-                ) STORED
+    -- GENERATED column: age computed from dob, not ideal as age will have to be regenerated daily in db
+    -- age         INT GENERATED ALWAYS AS (
+    --                 DATE_PART('year', AGE(dob))::INT
+    --             ) STORED
 );
 
 -- ─── COMPOSITE PRIMARY KEY ───────────────────────────────────
